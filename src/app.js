@@ -8,6 +8,8 @@ const cors = require('cors')
 const mongoose = require('mongoose')
 const CustomLogger = require('./utils/logger')
 const { errorHandler, CustomError } = require('./utils/error')
+const ServiceRegistryClient = require('./utils/serviceRegistry')
+
 const mongoUrl = config.MONGODB_URI
 const connection = mongoose.connection
 mongoose.set('strictQuery', false)
@@ -36,9 +38,13 @@ app.use('/', (req, res, next) => {
 app.use(cors())
 app.use(express.json())
 
-app.get('/api', (req, res, next) => {
+app.get('/api', async (req, res, next) => {
   try {
     // throw new CustomError('this endpoint shouldnt be accessed', 403)
+    const uri = await ServiceRegistryClient
+      .getInstance()
+      .getUrl('template')
+    console.log(uri)
     res
       .json({
         success: true,
