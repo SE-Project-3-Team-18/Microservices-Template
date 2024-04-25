@@ -1,6 +1,7 @@
 const axios = require('axios');
 const config = require('../config/config');
 const { CustomError } = require('./error');
+const { v4: uuidv4 } = require('uuid');
 
 /**
  * A class to abstract away interactions with the service registry.
@@ -33,6 +34,7 @@ class ServiceRegistryClient {
       this._baseUrl = config.SERVICE_REGISTRY_BASE_URI;
       this._heartbeatInterval = 5000; // 5 seconds (adjust as needed)
       this._heartbeatTimer = null;
+      this._instanceId = null;
 
       ServiceRegistryClient.instance = this;
     }
@@ -40,23 +42,8 @@ class ServiceRegistryClient {
   }
 
   async initialise() {
-    await this.#registerService(config.SERVICE_NAME, config.SERVICE_HOST, config.PORT)
+    this._instanceId = uuidv4()
     this.#startHeartbeat()
-  }
-
-  async #registerService(serviceName, host, port, metadata = {}) {
-    try {
-      const body = {
-        serviceName,
-        host,
-        port,
-        metadata,
-      }
-      const response = await axios.post(`${this._baseUrl}/register`, body);
-      return response.data;
-    } catch (error) {
-      throw new Error(`Error registering service: ${error.message}`);
-    }
   }
 
   async getUrl(serviceName) {
@@ -74,7 +61,14 @@ class ServiceRegistryClient {
 
   async #sendHeartbeat() {
     try {
-      const response = await axios.post(`${this._baseUrl}/heartbeat/${config.SERVICE_NAME}`);
+      const body = {
+        instanceId: this._instanceId,
+        serviceName: config.SERVICE_NAME,
+        host: config.SERVICE_HOST,
+        port: config.PORT,
+        metadata: {},
+      }
+      const response = await axios.post(`${this._baseUrl}/register`, body);
       return response.data;
     } catch (error) {
       throw new Error(`Error sending heartbeat: ${error.message}`);
